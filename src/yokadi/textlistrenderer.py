@@ -12,6 +12,7 @@ import colors as C
 import dateutils
 from db import Config, Task
 import tui
+import cryptutils
 
 
 def colorizer(value, reverse=False):
@@ -65,17 +66,27 @@ def idFormater(task):
 
 class TitleFormater(object):
     TITLE_WITH_KEYWORDS_TEMPLATE = "%s (%s)"
-    def __init__(self, width):
+    def __init__(self, width, decrypt):
+        """@param decrypt: if true, try to decrypt encrypted data"""
         self.width = width
+        self.decrypt = decrypt
 
     def __call__(self, task):
+        if cryptutils.isEncrypted(task.title):
+            if self.decrypt:
+                print C.BOLD + "Please give passphrase for task %s" % task.id + C.RESET
+                title = cryptutils.decrypt(task.title)
+            else:
+                title = "<...encrypted data...>"
+        else:
+            title = task.title
+
         # Compute title, titleWidth and colorWidth
         keywords = task.getUserKeywordsNameAsString()
         if keywords:
-            title = self.TITLE_WITH_KEYWORDS_TEMPLATE % (task.title, C.BOLD + keywords + C.RESET)
+            title = self.TITLE_WITH_KEYWORDS_TEMPLATE % (title, C.BOLD + keywords + C.RESET)
             colorWidth = len(C.BOLD) + len(C.RESET)
         else:
-            title = task.title
             colorWidth = 0
         titleWidth = len(title) - colorWidth
 
@@ -142,6 +153,7 @@ class TextListRenderer(object):
         self.taskLists = []
         self.maxTitleWidth = len("Title")
         self.today = datetime.today().replace(microsecond=0)
+        self.decrypt = False # Wether to decrypt or not encrypted data
 
         # All fields set to None must be defined in end()
         self.columns = [
