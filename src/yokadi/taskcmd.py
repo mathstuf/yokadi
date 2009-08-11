@@ -16,6 +16,7 @@ from db import Config, Keyword, Project, Task, \
                TaskKeyword, ProjectKeyword, Recurrence
 import dbutils
 import dateutils
+import cryptutils
 import parseutils
 import tui
 from completers import ProjectCompleter, projectAndKeywordCompleter,\
@@ -38,17 +39,32 @@ gRendererClassDict = dict(
     )
 
 class TaskCmd(object):
+    def parser_t_add(self):
+        parser = YokadiOptionParser()
+        parser.set_usage("t_add [options] <projectName> [@<keyword1>] [@<keyword2>] <Task description> [options] <id>")
+        parser.set_description("Add new task. Will prompt to create keywords if they do not exist.")
+        parser.add_option("-c", dest="crypt", default=False, action="store_true",
+                          help="Encrypt task title")
+        return parser
+
     def do_t_add(self, line):
-        """Add new task. Will prompt to create keywords if they do not exist.
-        t_add <projectName> [@<keyword1>] [@<keyword2>] <Task description>"""
         if not line:
             print "Give at least a task name !"
             return
-        projectName, title, keywordDict = parseutils.parseLine(line)
+
+        parser = self.parser_t_add()
+        options, args = parser.parse_args(line)
+
+        projectName, title, keywordDict = parseutils.parseLine(" ".join(args))
         if not title:
             raise YokadiException("You should give a task title")
+
+        if options.crypt:
+            title = cryptutils.encrypt(title)
         task = dbutils.addTask(projectName, title, keywordDict)
         if task:
+            if options.crypt:
+                title = "<... encrypted data...>"
             print "Added task '%s' (id=%d)" % (title, task.id)
         else:
             tui.reinjectInRawInput(u"t_add " + line)
@@ -58,6 +74,7 @@ class TaskCmd(object):
     def do_t_describe(self, line):
         """Starts an editor to enter a longer description of a task.
         t_describe <id>"""
+        #TODO: add encryption feature
         task=dbutils.getTaskFromId(line)
         try:
             description = tui.editText(task.description)
@@ -247,6 +264,10 @@ class TaskCmd(object):
         parser.add_option("-o", "--output", dest="output",
                           help="Output task list to <file>",
                           metavar="<file>")
+
+        parser.add_option("-c", "--decrypt", dest="decrypt",
+                          default=False, action="store_true",
+                          help="Decrypt encrypted data")
         return parser
 
     def do_t_list(self, line):
@@ -376,6 +397,8 @@ class TaskCmd(object):
         # Instantiate renderer
         rendererClass = selectRendererClass()
         renderer = rendererClass(out)
+        if options.decrypt:
+            renderer.decrypt = True
 
         # Fill the renderer
         if options.keyword:
