@@ -71,15 +71,37 @@ class TaskCmd(object):
 
     complete_t_add = projectAndKeywordCompleter
 
+    def parser_t_describe(self):
+        parser = YokadiOptionParser()
+        parser.set_usage("t_describe [options] <id>")
+        parser.set_description("Starts an editor to enter a longer description of a task.")
+        parser.add_option("-c", dest="crypt", default=False, action="store_true",
+                          help="Encrypt task description")
+        parser.add_option("-d", dest="decrypt", default=False, action="store_true",
+                          help="Decrypt task description")
+        return parser
+
     def do_t_describe(self, line):
-        """Starts an editor to enter a longer description of a task.
-        t_describe <id>"""
-        #TODO: add encryption feature
-        task=dbutils.getTaskFromId(line)
+
+        parser = self.parser_t_describe()
+        options, args = parser.parse_args(line)
+
+        if len(args)!=1:
+            raise YokadiException("You should only give task id")
+
+        task=dbutils.getTaskFromId(args[0])
+        description = task.description
+        if cryptutils.isEncrypted(description):
+            description = cryptutils.decrypt(description)
+            if not options.decrypt:
+                options.crypt = True # We assume that user want to keep encryption
         try:
-            description = tui.editText(task.description)
+            description = tui.editText(description)
         except Exception, e:
             raise YokadiException(e)
+
+        if options.crypt:
+            description = cryptutils.encrypt(description)
         task.description = description
 
     complete_t_describe = taskIdCompleter
