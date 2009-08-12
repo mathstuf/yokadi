@@ -510,6 +510,10 @@ class TaskCmd(object):
                           default="all",
                           help="<output> can be one of %s. If not set, it defaults to all." % ", ".join(choices),
                           metavar="<output>")
+        parser.add_option("-c", "--decrypt", dest="decrypt",
+                          default=False, action="store_true",
+                          help="Decrypt encrypted data")
+
         return parser
 
     def do_t_show(self, line):
@@ -547,7 +551,13 @@ class TaskCmd(object):
         if options.output in ("all", "description") and task.description:
             if options.output == "all":
                 print
-            print task.description
+            description = task.description
+            if cryptutils.isEncrypted(description):
+                if options.decrypt:
+                    description = cryptutils.decrypt(task.description)
+                else:
+                    description = "<...encrypted description...>"
+            print description
 
     complete_t_show = taskIdCompleter
 
