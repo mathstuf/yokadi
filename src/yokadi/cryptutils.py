@@ -14,16 +14,23 @@ import subprocess
 #TODO: add unit test
 #TODO: check security issues
 
-def encrypt(data):
+def encrypt(data, passphrase=None):
     """Encrypt user data. Passphrase is asked twice
     @return: encrypted data"""
     encryptedData = ""
     # Use temp dir instead of temp file because GPG complain if file already exists
     tmpFileDir = tempfile.mkdtemp(prefix="yokadi-")
     tmpFilePath = os.path.join(tmpFileDir, "data")
+    cmd = ["gpg", "-ac", "-o", tmpFilePath]
+    if passphrase:
+        cmd.append("--passphrase-fd")
+        cmd.append("0")
+        cmd.append("--batch")
+        cmd.append("--no-tty")
     try:
-        p = subprocess.Popen(["gpg", "-ac", "-o", tmpFilePath], 
-                             stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        if passphrase:
+            p.stdin.write(passphrase+"\n")
         p.stdin.write(data)
         p.stdin.flush()
         p.stdin.close()
