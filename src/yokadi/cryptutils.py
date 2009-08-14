@@ -45,16 +45,25 @@ def encrypt(data, passphrase=None):
 
     return encryptedData
 
-def decrypt(data):
+def decrypt(data, passphrase=None):
     """Decrypt user data. Passphrase is asked.
     @return: decrypted data"""
     decryptedData = "" 
-    (fd, name) = tempfile.mkstemp(suffix=".txt", prefix="yokadi-") 
+    (fd, name) = tempfile.mkstemp(suffix=".txt", prefix="yokadi-")
+    cmd = ["gpg", "-ad"]
+    if passphrase:
+        cmd.append("--passphrase-fd")
+        cmd.append("0")
+        cmd.append("--batch")
+        cmd.append("--no-tty")
+    cmd.append(name) # Give temp file as argument
     try:
         fl = file(name, "w")
         fl.write(data)
         fl.close()
-        p = subprocess.Popen(["gpg", "-ad", name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        if passphrase:
+            p.stdin.write(passphrase+"\n")
         rc = p.wait()
         if rc == 0:
             decryptedData = p.stdout.read()
