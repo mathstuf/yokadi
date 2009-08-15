@@ -7,9 +7,7 @@ Temporary file are used by only contains encrypted data.
 @license: GPL v3
 """
 
-import os
-import tempfile
-import subprocess
+import base64
 
 import tui
 
@@ -38,7 +36,7 @@ def encrypt(data, passphrase):
         return data
     passphrase = adjustPassphrase(passphrase)
     encryptCipher = EncryptCipher(cipherType, passphrase, initialVector)
-    return CRYPTO_PREFIX+encryptCipher.finish(data)
+    return CRYPTO_PREFIX + base64.b64encode(encryptCipher.finish(data))
 
 def decrypt(data, passphrase):
     """Decrypt user data.
@@ -47,6 +45,7 @@ def decrypt(data, passphrase):
         tui.warning("Crypto functions not available")
         return data
     data = data[len(CRYPTO_PREFIX):] # Remove crypto prefix
+    data = base64.b64decode(data)
     passphrase = adjustPassphrase(passphrase)
     decryptCipher = DecryptCipher(cipherType, passphrase, initialVector)
     return decryptCipher.finish(data)
