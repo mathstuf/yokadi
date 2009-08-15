@@ -56,6 +56,7 @@ class YokadiCmd(TaskCmd, ProjectCmd, KeywordCmd, ConfCmd, AliasCmd, Cmd):
         self.prompt = "yokadi> "
         self.historyPath=os.path.expandvars("$HOME/.yokadi_history")
         self.loadHistory()
+        self.passphrase=None # Cache encryption passphrase
 
     def emptyline(self):
         """Executed when input is empty. Reimplemented to do nothing."""
