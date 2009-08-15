@@ -60,7 +60,9 @@ class TaskCmd(object):
             raise YokadiException("You should give a task title")
 
         if options.crypt:
-            title = cryptutils.encrypt(title)
+            if not self.passphrase:
+                self.passphrase = cryptutils.askPassphrase()
+            title = cryptutils.encrypt(title, self.passphrase)
         task = dbutils.addTask(projectName, title, keywordDict)
         if task:
             if options.crypt:
@@ -92,7 +94,9 @@ class TaskCmd(object):
         task=dbutils.getTaskFromId(args[0])
         description = task.description
         if cryptutils.isEncrypted(description):
-            description = cryptutils.decrypt(description)
+            if not self.passphrase:
+                self.passphrase = cryptutils.askPassphrase()
+            description = cryptutils.decrypt(description, self.passphrase)
             if not options.decrypt:
                 options.crypt = True # We assume that user want to keep encryption
         try:
@@ -101,7 +105,9 @@ class TaskCmd(object):
             raise YokadiException(e)
 
         if options.crypt:
-            description = cryptutils.encrypt(description)
+            if not self.passphrase:
+                self.passphrase = cryptutils.askPassphrase()
+            description = cryptutils.encrypt(description, self.passphrase)
         task.description = description
 
     complete_t_describe = taskIdCompleter
@@ -554,7 +560,9 @@ class TaskCmd(object):
             description = task.description
             if cryptutils.isEncrypted(description):
                 if options.decrypt:
-                    description = cryptutils.decrypt(task.description)
+                    if not self.passphrase:
+                        self.passphrase = cryptutils.askPassphrase()
+                    description = cryptutils.decrypt(task.description, self.passphrase)
                 else:
                     description = "<...encrypted description...>"
             print description
