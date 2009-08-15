@@ -11,74 +11,60 @@ import os
 import tempfile
 import subprocess
 
+import tui
+
+# Prefix used to recognise encrypted message
+CRYPTO_PREFIX = "---YOKADI-ENCRYPTED-MESSAGE---"
+
+try:
+    from ncrypt.cipher import CipherType, EncryptCipher, DecryptCipher
+    NCRYPT=True
+    cipherType = CipherType("AES-128", "CBC")
+    initialVector = cipherType.ivLength()*"y"
+except ImportError:
+    tui.warning("NCrypt module not found. You will not be able to use cryptographic function")
+    tui.warning("like encrypting or decrypting task title or description")
+    tui.warning("You can find NCrypt here http://tachyon.in/ncrypt/")
+    NCRYPT=False
+
 #TODO: add unit test
-#TODO: check security issues
+#TODO: catch exception and wrap it into yokadi exception ?
 
-def encrypt(data, passphrase=None):
-    """Encrypt user data. Passphrase is asked twice
+def encrypt(data, passphrase):
+    """Encrypt user data.
     @return: encrypted data"""
-    encryptedData = ""
-    # Use temp dir instead of temp file because GPG complain if file already exists
-    tmpFileDir = tempfile.mkdtemp(prefix="yokadi-")
-    tmpFilePath = os.path.join(tmpFileDir, "data")
-    cmd = ["gpg", "-ac", "-o", tmpFilePath]
-    if passphrase:
-        cmd.append("--passphrase-fd")
-        cmd.append("0")
-        cmd.append("--batch")
-        cmd.append("--no-tty")
-    try:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-        if passphrase:
-            p.stdin.write(passphrase+"\n")
-        p.stdin.write(data)
-        p.stdin.flush()
-        p.stdin.close()
-        rc = p.wait()
-        if rc == 0:
-            encryptedData = file(tmpFilePath).read()
-        else:
-            print "Error while encrypting data"
-    finally:
-        os.unlink(tmpFilePath)
-        os.removedirs(tmpFileDir)
+    if not NCRYPT:
+        tui.warning("Crypto functions not available")
+        return data
+    passphrase = adjustPassphrase(passphrase)
+    encryptCipher = EncryptCipher(cipherType, passphrase, initialVector)
+    return CRYPTO_PREFIX+encryptCipher.finish(data)
 
-    return encryptedData
-
-def decrypt(data, passphrase=None):
-    """Decrypt user data. Passphrase is asked.
+def decrypt(data, passphrase):
+    """Decrypt user data.
     @return: decrypted data"""
-    decryptedData = "" 
-    (fd, name) = tempfile.mkstemp(suffix=".txt", prefix="yokadi-")
-    cmd = ["gpg", "-ad"]
-    if passphrase:
-        cmd.append("--passphrase-fd")
-        cmd.append("0")
-        cmd.append("--batch")
-        cmd.append("--no-tty")
-    cmd.append(name) # Give temp file as argument
-    try:
-        fl = file(name, "w")
-        fl.write(data)
-        fl.close()
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-        if passphrase:
-            p.stdin.write(passphrase+"\n")
-        rc = p.wait()
-        if rc == 0:
-            decryptedData = p.stdout.read()
-        else:
-            print "Error while decrypting data"
-    finally:
-        os.close(fd)
-        os.unlink(name)
-
-    return decryptedData
+    if not NCRYPT:
+        tui.warning("Crypto functions not available")
+        return data
+    data = data[len(CRYPTO_PREFIX):] # Remove crypto prefix
+    passphrase = adjustPassphrase(passphrase)
+    decryptCipher = DecryptCipher(cipherType, passphrase, initialVector)
+    return decryptCipher.finish(data)
 
 def isEncrypted(data):
     """Check if data is encrypted
     @return: True is the data seems encrypted, else False"""
-    if data.startswith("-----BEGIN PGP MESSAGE-----"):
+    if data.startswith(CRYPTO_PREFIX):
         return True
     else:
         return False
+
+def askPassphrase():
+    """Ask user for passphrase"""
+    return tui.editLine("", prompt="passphrase> ")
+
+def adjustPassphrase(passphrase):
+    """Adjust passphrase to meet cipher requirement length"""
+    passphrase = passphrase[:cipherType.keyLength()] # Shrink if key is too large
+    passphrase = passphrase.ljust(cipherType.keyLength(), "y") # Complete if too short
+    return passphrase
