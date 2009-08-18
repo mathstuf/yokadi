@@ -215,7 +215,7 @@ class TextListRenderer(object):
         totalWidth = sum([x.width for x in self.columns])
         if totalWidth > self.termWidth:
             self.titleColumn.width -= (totalWidth - self.termWidth) + len(self.columns)
-        self.titleColumn.formater = TitleFormater(self.titleColumn.width)
+        self.titleColumn.formater = TitleFormater(self.titleColumn.width, self.decrypt)
 
         # Print table
         for sectionName, taskList in self.taskLists:
