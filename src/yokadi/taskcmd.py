@@ -509,7 +509,10 @@ class TaskCmd(object):
         rendererClass = selectRendererClass()
         renderer = rendererClass(out)
         if options.decrypt:
+            if not self.passphrase:
+                self.passphrase = cryptutils.askPassphrase()
             renderer.decrypt = True
+            renderer.passphrase = self.passphrase
 
         # Fill the renderer
         if options.keyword:
