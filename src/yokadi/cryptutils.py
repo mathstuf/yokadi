@@ -15,7 +15,7 @@ import tui
 CRYPTO_PREFIX = "---YOKADI-ENCRYPTED-MESSAGE---"
 
 try:
-    from ncrypt.cipher import CipherType, EncryptCipher, DecryptCipher
+    from ncrypt.cipher import CipherType, EncryptCipher, DecryptCipher, CipherError
     NCRYPT=True
     cipherType = CipherType("AES-128", "CBC")
     initialVector = cipherType.ivLength()*"y"
@@ -47,8 +47,12 @@ def decrypt(data, passphrase):
     data = data[len(CRYPTO_PREFIX):] # Remove crypto prefix
     data = base64.b64decode(data)
     passphrase = adjustPassphrase(passphrase)
-    decryptCipher = DecryptCipher(cipherType, passphrase, initialVector)
-    return decryptCipher.finish(data)
+    try:
+        decryptCipher = DecryptCipher(cipherType, passphrase, initialVector)
+        data = decryptCipher.finish(data)
+    except CipherError:
+        data = "<...Failed to decrypt data...>"
+    return data
 
 def isEncrypted(data):
     """Check if data is encrypted
