@@ -64,7 +64,7 @@ def isEncrypted(data):
 
 def askPassphrase():
     """Ask user for passphrase"""
-    return tui.editLine("", prompt="passphrase> ")
+    return tui.editLine("", prompt="passphrase> ", echo=False)
 
 def adjustPassphrase(passphrase):
     """Adjust passphrase to meet cipher requirement length"""
