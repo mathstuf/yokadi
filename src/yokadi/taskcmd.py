@@ -655,6 +655,7 @@ class TaskCmd(object):
 
     complete_t_show = taskIdCompleter
 
+
     def do_t_edit(self, line):
         """Edit a task.
         t_edit <id>"""
@@ -679,8 +680,17 @@ class TaskCmd(object):
 
         task = self.getTaskFromId(line)
 
+        if cryptutils.isEncrypted(task.title):
+            encrypt = True
+            if not self.passphrase:
+                self.passphrase = cryptutils.askPassphrase()
+            title = cryptutils.decrypt(task.title, self.passphrase)
+        else:
+            encrypt = False
+            title = task.title
+
         # Create task line
-        taskLine = parseutils.createLine("", task.title, task.getKeywordDict())
+        taskLine = parseutils.createLine("", title, task.getKeywordDict())
 
         old_completer = readline.get_completer() # Backup previous completer to restore it in the end
         readline.set_completer(editComplete)     # Switch to specific completer
@@ -699,6 +709,8 @@ class TaskCmd(object):
                 readline.set_completer(old_completer)   # Restore standard completer
                 return
             foo, title, keywordDict = parseutils.parseLine(task.project.name+" "+line)
+            if encrypt:
+                title = cryptutils.encrypt(title, self.passphrase)
             if dbutils.updateTask(task, task.project.name, title, keywordDict):
                 break
 
