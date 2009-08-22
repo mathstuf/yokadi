@@ -7,11 +7,15 @@ Simple rendering of t_list output
 """
 
 import tui
+import cryptutils
 
 class PlainListRenderer(object):
     def __init__(self, out):
         self.out = out
         self.first = True
+        self.decrypt = False # Wether to decrypt or not encrypted data
+        self.passphrase = None
+
 
     def addTaskList(self, sectionName, taskList):
         """Store tasks for this section
@@ -28,7 +32,15 @@ class PlainListRenderer(object):
         print >>self.out, sectionName.encode(tui.ENCODING)
 
         for task in taskList:
-            print >>self.out, (u"- " + task.title).encode(tui.ENCODING)
+            if cryptutils.isEncrypted(task.title):
+                if self.decrypt:
+                    title = cryptutils.decrypt(task.title, self.passphrase)
+                else:
+                    title = "<...encrypted data...>"
+            else:
+                title = task.title
+
+            print >>self.out, (u"- " + title).encode(tui.ENCODING)
 
     def end(self):
         pass
