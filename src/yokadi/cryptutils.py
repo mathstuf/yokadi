@@ -8,6 +8,7 @@ Temporary file are used by only contains encrypted data.
 """
 
 import base64
+import hashlib
 
 import tui
 
@@ -62,9 +63,17 @@ def isEncrypted(data):
     else:
         return False
 
-def askPassphrase():
-    """Ask user for passphrase"""
-    return tui.editLine("", prompt="passphrase> ", echo=False)
+def askPassphrase(passphraseHash):
+    """Ask user for passphrase
+    @param passphraseHash: hash of previous"""
+    passphrase = tui.editLine("", prompt="passphrase> ", echo=False)
+    hash = hashlib.md5(passphrase).hexdigest()
+    if passphraseHash is not None and hash!=passphraseHash:
+        tui.warning("Passphrase differ from previous one. "
+                    "If you really want to have different passphrase, "
+                    "you should deactivate passphrase cache "
+                    "with c_set PASSPHRASE_CACHE 0")
+    return (hash, passphrase)
 
 def adjustPassphrase(passphrase):
     """Adjust passphrase to meet cipher requirement length"""

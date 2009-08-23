@@ -130,7 +130,7 @@ class TaskCmd(object):
 
         if options.crypt:
             if not self.passphrase:
-                self.passphrase = cryptutils.askPassphrase()
+                self.passphraseHash, self.passphrase = cryptutils.askPassphrase(self.passphraseHash)
             # Obfuscate line in history
             length=readline.get_current_history_length()
             readline.replace_history_item(length-1, "t_add -c %s " % line.replace(title, "<...encrypted...>"))
@@ -168,7 +168,7 @@ class TaskCmd(object):
         description = task.description
         if cryptutils.isEncrypted(description):
             if not self.passphrase:
-                self.passphrase = cryptutils.askPassphrase()
+                self.passphraseHash, self.passphrase = cryptutils.askPassphrase(self.passphraseHash)
             description = cryptutils.decrypt(description, self.passphrase)
             if not options.decrypt:
                 options.crypt = True # We assume that user want to keep encryption
@@ -179,7 +179,7 @@ class TaskCmd(object):
 
         if options.crypt:
             if not self.passphrase:
-                self.passphrase = cryptutils.askPassphrase()
+                self.passphraseHash, self.passphrase = cryptutils.askPassphrase(self.passphraseHash)
             description = cryptutils.encrypt(description, self.passphrase)
         task.description = description
 
@@ -510,7 +510,7 @@ class TaskCmd(object):
         renderer = rendererClass(out)
         if options.decrypt:
             if not self.passphrase:
-                self.passphrase = cryptutils.askPassphrase()
+                self.passphraseHash, self.passphrase = cryptutils.askPassphrase(None)
             renderer.decrypt = True
             renderer.passphrase = self.passphrase
 
@@ -647,7 +647,7 @@ class TaskCmd(object):
             if cryptutils.isEncrypted(description):
                 if options.decrypt:
                     if not self.passphrase:
-                        self.passphrase = cryptutils.askPassphrase()
+                        self.passphraseHash, self.passphrase = cryptutils.askPassphrase(None)
                     description = cryptutils.decrypt(task.description, self.passphrase)
                 else:
                     description = "<...encrypted description...>"
@@ -683,7 +683,7 @@ class TaskCmd(object):
         if cryptutils.isEncrypted(task.title):
             encrypt = True
             if not self.passphrase:
-                self.passphrase = cryptutils.askPassphrase()
+                self.passphraseHash, self.passphrase = cryptutils.askPassphrase(self.passphraseHash)
             title = cryptutils.decrypt(task.title, self.passphrase)
         else:
             encrypt = False

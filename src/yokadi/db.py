@@ -272,9 +272,11 @@ def setDefaultConfig():
                              "Command executed by Yokadi Daemon when a tasks due date is reached soon (see ALARM_DELAY"),
         "ALARM_DUE_CMD"   : ('''kdialog --passivepopup "task {TITLE} ({ID}) should be done now" 1800 --title "Yokadi: {PROJECT}"''',False,
                              "Command executed by Yokadi Daemon when a tasks due date is reached soon (see ALARM_DELAY"),
-        "ALARM_DELAY"     : ("8", False, "Delay (in hours) before due date to launch the alarm (see ALARM_CMD)"),
-        "ALARM_SUSPEND"   : ("1", False, "Delay (in hours) before an alarm trigger again"),
-        "PURGE_DELAY"     : ("90", False, "Default delay (in days) for the t_purge command")}
+        "ALARM_DELAY"      : ("8", False, "Delay (in hours) before due date to launch the alarm (see ALARM_CMD)"),
+        "ALARM_SUSPEND"    : ("1", False, "Delay (in hours) before an alarm trigger again"),
+        "PURGE_DELAY"      : ("90", False, "Default delay (in days) for the t_purge command"),
+        "PASSPHRASE_CACHE" : ("1", False, "Keep passphrase in memory till Yokadi is started (0 is false else true"),
+        "PASSPHRASE_HASH"  : ("", True, "Passphrase hash to detect passphrase change")}
 
     for name, value in defaultConfig.items():
         if Config.select(Config.q.name==name).count()==0:
