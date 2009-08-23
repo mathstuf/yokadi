@@ -133,7 +133,7 @@ class TaskCmd(object):
                 self.passphraseHash, self.passphrase = cryptutils.askPassphrase(self.passphraseHash)
             # Obfuscate line in history
             length=readline.get_current_history_length()
-            readline.replace_history_item(length-1, "t_add -c %s " % line.replace(title, "<...encrypted...>"))
+            readline.replace_history_item(length-1, "t_add %s " % line.replace(title, "<...encrypted...>"))
             title = cryptutils.encrypt(title, self.passphrase)
         task = dbutils.addTask(projectName, title, keywordDict)
         if task:
