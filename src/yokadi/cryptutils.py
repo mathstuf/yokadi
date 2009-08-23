@@ -68,7 +68,7 @@ def askPassphrase(passphraseHash):
     @param passphraseHash: hash of previous"""
     passphrase = tui.editLine("", prompt="passphrase> ", echo=False)
     hash = hashlib.md5(passphrase).hexdigest()
-    if passphraseHash is not None and hash!=passphraseHash:
+    if passphraseHash and hash!=passphraseHash:
         tui.warning("Passphrase differ from previous one. "
                     "If you really want to have different passphrase, "
                     "you should deactivate passphrase cache "
