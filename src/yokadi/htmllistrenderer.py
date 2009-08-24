@@ -21,8 +21,11 @@ def printRow(out, tag, lst):
     print >>out, "</tr>"
 
 class HtmlListRenderer(object):
-    def __init__(self, out):
+    def __init__(self, out, cryptoMgr, decrypt = False):
         self.out = out
+        self.decrypt = decrypt # Wether to decrypt or not encrypted data
+        self.cryptoMgr = cryptoMgr # Yokadi cryptographic manager
+
 
         #TODO: make this fancier
         print >>self.out, """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

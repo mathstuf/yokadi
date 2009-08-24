@@ -39,6 +39,7 @@ from yokadiexception import YokadiException
 import tui
 from yokadioptionparser import YokadiOptionParserNormalExitException
 import utils
+import cryptutils
 
 # Force default encoding to prefered encoding
 # This is mandatory when yokadi output is piped in another command
@@ -56,10 +57,7 @@ class YokadiCmd(TaskCmd, ProjectCmd, KeywordCmd, ConfCmd, AliasCmd, Cmd):
         self.prompt = "yokadi> "
         self.historyPath = os.path.expandvars("$HOME/.yokadi_history")
         self.loadHistory()
-        self.passphrase = None # Cache encryption passphrase
-        self.passphraseHash = None # Passphrase hash
-
-        self.passphraseHash = db.Config.byName("PASSPHRASE_HASH").value
+        self.cryptoMgr = cryptutils.YokadiCryptoManager()
 
 
     def emptyline(self):
@@ -100,10 +98,6 @@ class YokadiCmd(TaskCmd, ProjectCmd, KeywordCmd, ConfCmd, AliasCmd, Cmd):
         """This method is subclassed just to be
         able to encapsulate it with a try/except bloc"""
         try:
-            # Flush passphrase cache if user want that
-            if db.Config.byName("PASSPHRASE_CACHE").value == "0":
-                self.passphraseHash = None
-                self.passphrase = None
             # Decode user input
             line=line.decode(tui.ENCODING)
             return Cmd.onecmd(self, line)
@@ -228,9 +222,6 @@ def main():
         sys.exit(1)
     # Save history
     cmd.writeHistory()
-    # Save passphrase hash
-    if cmd.passphraseHash:
-        db.Config.byName("PASSPHRASE_HASH").value = cmd.passphraseHash
 
 if __name__=="__main__":
     main()

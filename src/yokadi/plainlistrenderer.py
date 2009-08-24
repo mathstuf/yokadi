@@ -7,14 +7,13 @@ Simple rendering of t_list output
 """
 
 import tui
-import cryptutils
 
 class PlainListRenderer(object):
-    def __init__(self, out):
+    def __init__(self, out, cryptoMgr, decrypt = False):
         self.out = out
         self.first = True
-        self.decrypt = False # Wether to decrypt or not encrypted data
-        self.passphrase = None
+        self.decrypt = decrypt # Wether to decrypt or not encrypted data
+        self.cryptoMgr = cryptoMgr # Yokadi cryptographic manager
 
 
     def addTaskList(self, sectionName, taskList):
@@ -32,9 +31,9 @@ class PlainListRenderer(object):
         print >>self.out, sectionName.encode(tui.ENCODING)
 
         for task in taskList:
-            if cryptutils.isEncrypted(task.title):
+            if self.cryptoMgr.isEncrypted(task.title):
                 if self.decrypt:
-                    title = cryptutils.decrypt(task.title, self.passphrase)
+                    title = self.cryptoMgr.decrypt(task.title)
                 else:
                     title = "<...encrypted data...>"
             else:

@@ -12,7 +12,6 @@ import colors as C
 import dateutils
 from db import Config, Task
 import tui
-import cryptutils
 
 
 def colorizer(value, reverse=False):
@@ -66,17 +65,17 @@ def idFormater(task):
 
 class TitleFormater(object):
     TITLE_WITH_KEYWORDS_TEMPLATE = "%s (%s)"
-    def __init__(self, width, decrypt, passphrase):
+    def __init__(self, width, decrypt, cryptoMgr):
         """@param decrypt: if true, try to decrypt encrypted data
-           @param passphrase: encryption passphrase"""
+           @param cryptoMgr: yokadi cryptographic manager"""
         self.width = width
         self.decrypt = decrypt
-        self.passphrase = passphrase
+        self.cryptoMgr = cryptoMgr
 
     def __call__(self, task):
-        if cryptutils.isEncrypted(task.title):
+        if self.cryptoMgr.isEncrypted(task.title):
             if self.decrypt:
-                title = cryptutils.decrypt(task.title, self.passphrase)
+                title = self.cryptoMgr.decrypt(task.title)
             else:
                 title = "<...encrypted data...>"
         else:
@@ -148,14 +147,14 @@ class DueDateFormater(object):
 
 
 class TextListRenderer(object):
-    def __init__(self, out, termWidth = None):
+    def __init__(self, out, cryptoMgr, decrypt=False, termWidth = None):
         self.out = out
         self.termWidth = termWidth or tui.getTermWidth()
         self.taskLists = []
         self.maxTitleWidth = len("Title")
         self.today = datetime.today().replace(microsecond=0)
-        self.decrypt = False # Wether to decrypt or not encrypted data
-        self.passphrase = None
+        self.decrypt = decrypt # Wether to decrypt or not encrypted data
+        self.cryptoMgr = cryptoMgr # Yokadi cryptographic manager
 
         # All fields set to None must be defined in end()
         self.columns = [
@@ -209,7 +208,7 @@ class TextListRenderer(object):
         totalWidth = sum([x.width for x in self.columns])
         if totalWidth > self.termWidth:
             self.titleColumn.width -= (totalWidth - self.termWidth) + len(self.columns)
-        self.titleColumn.formater = TitleFormater(self.titleColumn.width, self.decrypt, self.passphrase)
+        self.titleColumn.formater = TitleFormater(self.titleColumn.width, self.decrypt, self.cryptoMgr)
 
         # Print table
         for sectionName, taskList in self.taskLists:

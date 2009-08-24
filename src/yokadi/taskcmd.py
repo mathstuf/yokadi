@@ -17,7 +17,6 @@ from db import Config, Keyword, Project, Task, \
 import bugutils
 import dbutils
 import dateutils
-import cryptutils
 import parseutils
 import tui
 from completers import ProjectCompleter, projectAndKeywordCompleter,\
@@ -129,12 +128,10 @@ class TaskCmd(object):
             raise YokadiException("You should give a task title")
 
         if options.crypt:
-            if not self.passphrase:
-                self.passphraseHash, self.passphrase = cryptutils.askPassphrase(self.passphraseHash)
             # Obfuscate line in history
             length=readline.get_current_history_length()
             readline.replace_history_item(length-1, "t_add %s " % line.replace(title, "<...encrypted...>"))
-            title = cryptutils.encrypt(title, self.passphrase)
+            title = self.cryptoMgr.encrypt(title)
         task = dbutils.addTask(projectName, title, keywordDict)
         if task:
             if options.crypt:
@@ -166,10 +163,8 @@ class TaskCmd(object):
 
         task=self.getTaskFromId(args[0])
         description = task.description
-        if cryptutils.isEncrypted(description):
-            if not self.passphrase:
-                self.passphraseHash, self.passphrase = cryptutils.askPassphrase(self.passphraseHash)
-            description = cryptutils.decrypt(description, self.passphrase)
+        if self.cryptoMgr.isEncrypted(description):
+            description = self.cryptoMgr.decrypt(description)
             if not options.decrypt:
                 options.crypt = True # We assume that user want to keep encryption
         try:
@@ -178,9 +173,7 @@ class TaskCmd(object):
             raise YokadiException(e)
 
         if options.crypt:
-            if not self.passphrase:
-                self.passphraseHash, self.passphrase = cryptutils.askPassphrase(self.passphraseHash)
-            description = cryptutils.encrypt(description, self.passphrase)
+            description = self.cryptoMgr.encrypt(description)
         task.description = description
 
     complete_t_describe = taskIdCompleter
@@ -507,12 +500,7 @@ class TaskCmd(object):
 
         # Instantiate renderer
         rendererClass = selectRendererClass()
-        renderer = rendererClass(out)
-        if options.decrypt:
-            if not self.passphrase:
-                self.passphraseHash, self.passphrase = cryptutils.askPassphrase(None)
-            renderer.decrypt = True
-            renderer.passphrase = self.passphrase
+        renderer = rendererClass(out, self.cryptoMgr, decrypt = options.decrypt)
 
         # Fill the renderer
         if options.keyword:
@@ -644,11 +632,9 @@ class TaskCmd(object):
             if options.output == "all":
                 print
             description = task.description
-            if cryptutils.isEncrypted(description):
+            if self.cryptoMgr.isEncrypted(description):
                 if options.decrypt:
-                    if not self.passphrase:
-                        self.passphraseHash, self.passphrase = cryptutils.askPassphrase(None)
-                    description = cryptutils.decrypt(task.description, self.passphrase)
+                    description = self.cryptoMgr.decrypt(task.description)
                 else:
                     description = "<...encrypted description...>"
             print description
@@ -680,11 +666,9 @@ class TaskCmd(object):
 
         task = self.getTaskFromId(line)
 
-        if cryptutils.isEncrypted(task.title):
+        if self.cryptoMgr.isEncrypted(task.title):
             encrypt = True
-            if not self.passphrase:
-                self.passphraseHash, self.passphrase = cryptutils.askPassphrase(self.passphraseHash)
-            title = cryptutils.decrypt(task.title, self.passphrase)
+            title = self.cryptoMgr.decrypt(task.title)
         else:
             encrypt = False
             title = task.title
@@ -710,7 +694,7 @@ class TaskCmd(object):
                 return
             foo, title, keywordDict = parseutils.parseLine(task.project.name+" "+line)
             if encrypt:
-                title = cryptutils.encrypt(title, self.passphrase)
+                title = self.cryptoMgr.encrypt(title)
             if dbutils.updateTask(task, task.project.name, title, keywordDict):
                 break
 

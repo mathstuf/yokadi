@@ -11,6 +11,7 @@ import base64
 import hashlib
 
 import tui
+import db
 
 # Prefix used to recognise encrypted message
 CRYPTO_PREFIX = "---YOKADI-ENCRYPTED-MESSAGE---"
@@ -27,53 +28,71 @@ except ImportError:
     NCRYPT=False
 
 #TODO: add unit test
-#TODO: catch exception and wrap it into yokadi exception ?
 
-def encrypt(data, passphrase):
-    """Encrypt user data.
-    @return: encrypted data"""
-    if not NCRYPT:
-        tui.warning("Crypto functions not available")
+class YokadiCryptoManager(object):
+    """Manager object for Yokadi cryptographic operation"""
+    def __init__(self):
+        self.passphrase = None # Cache encryption passphrase
+        self.passphraseHash = None # Passphrase hash
+
+        self.passphraseHash = db.Config.byName("PASSPHRASE_HASH").value
+
+
+    def encrypt(self, data):
+        """Encrypt user data.
+        @return: encrypted data"""
+        if not NCRYPT:
+            tui.warning("Crypto functions not available")
+            return data
+        self.askPassphrase()
+        aPassphrase = adjustPassphrase(self.passphrase)
+        encryptCipher = EncryptCipher(cipherType, aPassphrase, initialVector)
+        return CRYPTO_PREFIX + base64.b64encode(encryptCipher.finish(data))
+
+
+    def decrypt(self, data):
+        """Decrypt user data.
+        @return: decrypted data"""
+        if not NCRYPT:
+            tui.warning("Crypto functions not available")
+            return data
+        data = data[len(CRYPTO_PREFIX):] # Remove crypto prefix
+        data = base64.b64decode(data)
+        self.askPassphrase()
+        aPassphrase = adjustPassphrase(self.passphrase)
+        try:
+            decryptCipher = DecryptCipher(cipherType, aPassphrase, initialVector)
+            data = decryptCipher.finish(data)
+        except CipherError:
+            data = "<...Failed to decrypt data...>"
         return data
-    passphrase = adjustPassphrase(passphrase)
-    encryptCipher = EncryptCipher(cipherType, passphrase, initialVector)
-    return CRYPTO_PREFIX + base64.b64encode(encryptCipher.finish(data))
 
-def decrypt(data, passphrase):
-    """Decrypt user data.
-    @return: decrypted data"""
-    if not NCRYPT:
-        tui.warning("Crypto functions not available")
-        return data
-    data = data[len(CRYPTO_PREFIX):] # Remove crypto prefix
-    data = base64.b64decode(data)
-    passphrase = adjustPassphrase(passphrase)
-    try:
-        decryptCipher = DecryptCipher(cipherType, passphrase, initialVector)
-        data = decryptCipher.finish(data)
-    except CipherError:
-        data = "<...Failed to decrypt data...>"
-    return data
 
-def isEncrypted(data):
-    """Check if data is encrypted
-    @return: True is the data seems encrypted, else False"""
-    if data.startswith(CRYPTO_PREFIX):
-        return True
-    else:
-        return False
+    def askPassphrase(self):
+        """Ask user for passphrase if needed"""
+        cache = bool(int(db.Config.byName("PASSPHRASE_CACHE").value))
+        if self.passphrase and cache:
+            return
+        self.passphrase = tui.editLine("", prompt="passphrase> ", echo=False)
+        hash = hashlib.md5(self.passphrase).hexdigest()
+        if hash!=self.passphraseHash and cache:
+            tui.warning("Passphrase differ from previous one. "
+                        "If you really want to have different passphrase, "
+                        "you should deactivate passphrase cache "
+                        "with c_set PASSPHRASE_CACHE 0")
 
-def askPassphrase(passphraseHash):
-    """Ask user for passphrase
-    @param passphraseHash: hash of previous"""
-    passphrase = tui.editLine("", prompt="passphrase> ", echo=False)
-    hash = hashlib.md5(passphrase).hexdigest()
-    if passphraseHash and hash!=passphraseHash:
-        tui.warning("Passphrase differ from previous one. "
-                    "If you really want to have different passphrase, "
-                    "you should deactivate passphrase cache "
-                    "with c_set PASSPHRASE_CACHE 0")
-    return (hash, passphrase)
+        self.passphraseHash = hash
+        db.Config.byName("PASSPHRASE_HASH").value = hash
+
+
+    def isEncrypted(self, data):
+        """Check if data is encrypted
+        @return: True is the data seems encrypted, else False"""
+        if data.startswith(CRYPTO_PREFIX):
+            return True
+        else:
+            return False
+
 
 def adjustPassphrase(passphrase):
     """Adjust passphrase to meet cipher requirement length"""
