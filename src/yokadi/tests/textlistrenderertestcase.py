@@ -13,12 +13,14 @@ import dbutils
 import testutils
 
 import tui
+import cryptutils
 from textlistrenderer import TextListRenderer
 
 class TextListRendererTestCase(unittest.TestCase):
     def setUp(self):
         testutils.clearDatabase()
         tui.clearInputAnswers()
+        self.cryptoMgr=cryptutils.YokadiCryptoManager()
 
     def testTitleFormater(self):
         dbutils.getOrCreateProject("x", interactive=False)
@@ -30,7 +32,7 @@ class TextListRendererTestCase(unittest.TestCase):
         longerTask.description = "And it has a description"
 
         out = StringIO()
-        renderer = TextListRenderer(out, termWidth=80)
+        renderer = TextListRenderer(out, cryptoMgr=self.cryptoMgr, termWidth=80)
         renderer.addTaskList("Foo", [t1])
         self.assertEquals(renderer.maxTitleWidth, 5)
         renderer.end()
@@ -43,7 +45,7 @@ class TextListRendererTestCase(unittest.TestCase):
         testutils.multiLinesAssertEqual(self, out.getvalue(), expected)
 
         out = StringIO()
-        renderer = TextListRenderer(out, termWidth=80)
+        renderer = TextListRenderer(out, cryptoMgr=self.cryptoMgr, termWidth=80)
         renderer.addTaskList("Foo", [t1, t2])
         self.assertEquals(renderer.maxTitleWidth, 11)
         renderer.end()
@@ -57,7 +59,7 @@ class TextListRendererTestCase(unittest.TestCase):
         testutils.multiLinesAssertEqual(self, out.getvalue(), expected)
 
         out = StringIO()
-        renderer = TextListRenderer(out, termWidth=80)
+        renderer = TextListRenderer(out, cryptoMgr=self.cryptoMgr, termWidth=80)
         renderer.addTaskList("Foo", [t2, longerTask])
         self.assertEquals(renderer.maxTitleWidth, len(longerTask.title) + 1)
         renderer.end()

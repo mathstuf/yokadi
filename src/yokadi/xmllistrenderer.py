@@ -13,8 +13,10 @@ import tui
 TASK_FIELDS = ["title", "creationDate", "dueDate", "doneDate", "description", "urgency", "status", "keywords"]
 
 class XmlListRenderer(object):
-    def __init__(self, out):
+    def __init__(self, out, cryptoMgr, decrypt = False):
         self.out = out
+        self.decrypt = decrypt # Wether to decrypt or not encrypted data
+        self.cryptoMgr = cryptoMgr # Yokadi cryptographic manager
         self.doc = dom.Document()
         self.rootElement = self.doc.createElement("yokadi")
         self.doc.appendChild(self.rootElement)
