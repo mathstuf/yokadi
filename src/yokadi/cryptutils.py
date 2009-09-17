@@ -13,6 +13,8 @@ import hashlib
 import tui
 import db
 
+from sqlobject import SQLObjectNotFound
+
 # Prefix used to recognise encrypted message
 CRYPTO_PREFIX = "---YOKADI-ENCRYPTED-MESSAGE---"
 
@@ -33,9 +35,10 @@ class YokadiCryptoManager(object):
     """Manager object for Yokadi cryptographic operation"""
     def __init__(self):
         self.passphrase = None # Cache encryption passphrase
-        self.passphraseHash = None # Passphrase hash
-
-        self.passphraseHash = db.Config.byName("PASSPHRASE_HASH").value
+        try:
+            self.passphraseHash = db.Config.byName("PASSPHRASE_HASH").value
+        except SQLObjectNotFound:
+            self.passphraseHash = None # Passphrase hash
 
 
     def encrypt(self, data):
